@@ -21,6 +21,10 @@ coef = {
 }
 
 def NG_parser(NG):
+    """ 
+    Parser for the number of gaussians.
+    Takes a general input (int, 1, or str, '1g') and returns the NG, d and a vectors.
+    """
     if type(NG) == str:
         d,a = coef[NG.lower()]
         NG = int(NG[0])
@@ -89,6 +93,9 @@ def W2b(H,S): return (H[0,0] - H[0,1])/(1-S[0,1])
 N = 2
 NG = 1
 R = 2
+Ra = 0
+Rb = Ra+R
+
 # R = np.linspace(0.2,5.,n)/ao 
 Za,Zb = 1,1
 
