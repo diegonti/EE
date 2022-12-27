@@ -35,15 +35,12 @@ def NG_parser(NG):
     return NG,d,a
 
 def Norm(a,b):
+    """The normalization constant for a given integral <A|B>"""
     return ((2*a/pi)*(2*b/pi))**(3/4)
 
 def Fo(t): 
     """Auxiliary function"""
     return 0.5*np.sqrt(pi/t)*erf(np.sqrt(t))
-
-def g(r,a):
-    "Normalized gaussian function in spherical coordinates"
-    return (2*a/pi)**(3/4) * np.exp(-a*r**2)
 
 
 # Individual gaussian integrals
