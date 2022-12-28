@@ -7,6 +7,8 @@ Diego Ontiveros
 import numpy as np
 
 def bie_index(ijkl):
+    """Takes string od the indices of the bielectronic integral and returns
+    the index of the bielectronic parametrized array of integrals it corresponds."""
     i,j,k,l =[int(t) for t in ijkl]
     sij = i+j if i!=j else i
     skl = k+l if k!=l else k
@@ -18,34 +20,83 @@ def bie_index(ijkl):
     elif sorted(sijkl) == [3,3]: return 3
     else: raise ValueError("Bielectronic indices nor valid.")
 
+def G_matrix(m,P):
+    """Computed bielectornic matrix."""
+    G = np.zeros(shape=(m,m))
 
-Uij = 1/np.sqrt(2)
+    for mu in range(m):
+        for nu in range(m):
 
-N = 2
-m = 2
-R = 1.4
-z = 1.24
+            for l in range(m):
+                for s in range(m):
 
+                    munusl = f"{mu+1}{nu+1}{s+1}{l+1}"
+                    mulsnu = f"{mu+1}{l+1}{s+1}{nu+1}"
+                    i1 = bie_index(munusl)    
+                    i2 = bie_index(mulsnu)
+                    # print(munusl,mulsnu)
+                    # print(i1,i2)
+
+                    G[mu,nu] += P[mu,nu]*(bielectronic[i1] - 0.5*bielectronic[i2])
+
+    return G
+
+def converged(P0,Pt,eps):
+    """Determines if a step is converged with a certain tolerance (eps)."""
+    m = len(Pt)
+    diff = 0
+    for mu in range(m):
+        for nu in range(m):
+            diff += (Pt[nu,mu]-P0[nu,mu])**2
+    # Probar  de hacerlo con arrays!!!
+
+    diff = np.sqrt(diff/m**2)
+
+    if diff<=eps: return True
+    else: return False
+
+
+
+N = 2           # Number of electrons
+m = 2           # Number of basis functions
+R = 1.4         # H-H distance
+z = 1.24        # exponent
+eps = 1e-4
+
+# Parametrized Hamiltonian and Overlapping matrices
 S = [1,0.6593]
 t = [0.7600,0.2365]
 v = [-1.2266,-0.5974,-0.6538]
-bielectronic = [0.7746,0.5697,0.4441,0.2970]
 
 S = np.array([S,S[::-1]])
 T = np.array([t,t[::-1]])
 V = np.array([[-1.2266,-0.5974],[-0.5974,-0.6538]])
 H = T+V
 
-U = np.array([[Uij,Uij],[Uij,-Uij]])
-
-C = np.random.uniform(-1,1,size=N)
-
-
-
 print("Overlap Matrix:\n",S)
 print("Kinetic Matrix:\n",T)
 print("e-N Potential Matrix:\n",V)
 print("Hamiltonian Matrix:\n",H)
+
+# Bielectronic integrals
+bielectronic = [0.7746,0.5697,0.4441,0.2970]
+
+
+# Unitary matrix to build X
+Uij = 1/np.sqrt(2)
+U = np.array([[Uij,Uij],[Uij,-Uij]])
+
+# Randomly initialized MO
+C = np.random.uniform(-1,1,size=N)
+
+while True:
+
+
+    if converged(P0,Pt,eps):
+        print("Converged!")
+
+
+
 
 Seval,Sevec = np.linalg.eig(S)
 X = U@np.linalg.inv(np.diag(np.sqrt(Seval)))
