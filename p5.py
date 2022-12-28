@@ -88,6 +88,8 @@ def W2b(H,S): return (H[0,0] - H[0,1])/(1-S[0,1])
 N = 2
 NG = 3
 R = 2.0035
+Ra=0
+Rb = Ra+R
 
 Za,Zb = 1,1
 
@@ -96,19 +98,19 @@ T = matrix(N,NG,R,_T)
 V = matrix(N,NG,R,_V,Za,Zb)
 H = T+V
 
-print(S)
-print(T)
-print(V)
+print("Overlap Matrix:\n",S)
+print("Kinetic Matrix:\n",T)
+print("Potential Matrix:\n",V)
 
 M = sm.Matrix(H-W*S)
 W1,W2 = sm.solve(M.det())
-print(W1,W2)
+print("Electronic Energies:\n",W1,W2)
 
 Vnn = 1/R
-print(Vnn)
+print("Nuclear Repulsion:\n",Vnn)
 
 E1,E2 = W1+1/R, W2+1/R
-print(E1,E2)
+print("Total Energies:\n",E1,E2)
 
 print()
 print(W1b(H,S),W2b(H,S))
