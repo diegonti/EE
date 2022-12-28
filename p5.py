@@ -71,14 +71,12 @@ def matrix(N,NG,R,f,*params):
     M = np.zeros(shape=(N,N))
     for i in range(N):
         for j in range(N):
-
+            if i==j: Rij = 0
+            else: Rij = R
                             
             for p in range(NG):
                 for q in range(NG):
-                    if i==j: Rij = 0
-                    else: Rij = R
 
-                    
                     M[i,j] += d[p]*d[q]*f(a[p],a[q],Rij, *params)
     return M
 
@@ -88,12 +86,9 @@ def W2b(H,S): return (H[0,0] - H[0,1])/(1-S[0,1])
 # ao = 0.529177249
 # n = 100
 N = 2
-NG = 1
-R = 2
-Ra = 0
-Rb = Ra+R
+NG = 3
+R = 2.0035
 
-# R = np.linspace(0.2,5.,n)/ao 
 Za,Zb = 1,1
 
 S = matrix(N,NG,R,_S)
@@ -110,8 +105,10 @@ W1,W2 = sm.solve(M.det())
 print(W1)
 print(W2)
 
+E1,E2 = W1+1/R, W2+1/R
+print(E1,E2)
 
-
+print()
 print(W1b(H,S))
 print(W2b(H,S))
 
