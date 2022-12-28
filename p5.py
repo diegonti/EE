@@ -38,29 +38,28 @@ def Norm(a,b):
     """The normalization constant for a given integral <A|B>"""
     return ((2*a/pi)*(2*b/pi))**(3/4)
 
+
 def Fo(t): 
     """Auxiliary function"""
-    return 0.5*np.sqrt(pi/t)*erf(np.sqrt(t))
+    if t<1e-6: return 1-t/3
+    else: return 0.5*np.sqrt(pi/t)*erf(np.sqrt(t))
 
 
 # Individual gaussian integrals
-def _S(a,b,R): return Norm(a,b)*(pi/(a+b))**(3/2) * np.exp(-a*b/(a+b)*R**2)
+def _S(a,b,Ra,Rb): return Norm(a,b)*(pi/(a+b))**(3/2) * np.exp(-a*b/(a+b)*(Ra-Rb)**2)
 
-def _T(a,b,R): 
+def _T(a,b,Ra,Rb): 
     fracc = a*b/(a+b)
-    return fracc*(3-2*fracc*R**2)*_S(a,b,R)
+    return fracc*(3-2*fracc*(Ra-Rb)**2)*_S(a,b,Ra,Rb)
 
-def _Vp(a,b,R,Z,Rc):
-    Rp = (a*0 + b*R)/(a+b)
+def _Vp(a,b,Ra,Rb,Z,Rc):
+    Rp = (a*Ra + b*Rb)/(a+b)
     t = (a+b)*(Rp-Rc)**2
 
-    if t<1e-6: F = 1-t/3
-    else: F = Fo(t)
+    return -2*pi/(a+b)*Z * np.exp(-a*b/(a+b)*(Ra-Rb)**2)*Fo(t) * Norm(a,b)
 
-    return -2*pi/(a+b)*Z * np.exp(-a*b/(a+b)*R**2)*F * Norm(a,b)
-
-def _V(a,b,R,Za,Zb):
-    return _Vp(a,b,R,Za,0) + _Vp(a,b,R,Zb,R)
+def _V(a,b,Ra,Rb,Za,Zb,R):
+    return _Vp(a,b,Ra,Rb,Za,R[0]) + _Vp(a,b,Ra,Rb,Zb,R[1])
 
 # Matrix elements
 def matrix(N,NG,R,f,*params):
@@ -71,31 +70,35 @@ def matrix(N,NG,R,f,*params):
     M = np.zeros(shape=(N,N))
     for i in range(N):
         for j in range(N):
-            if i==j: Rij = 0
-            else: Rij = R
+            # if i==j: Rij = 0
+            # else: Rij = R
+            Ra = R[i]
+            Rb = R[j]
                             
             for p in range(NG):
                 for q in range(NG):
 
-                    M[i,j] += d[p]*d[q]*f(a[p],a[q],Rij, *params)
+                    M[i,j] += d[p]*d[q]*f(a[p],a[q],Ra,Rb, *params)
     return M
 
 def W1b(H,S): return (H[0,0] + H[0,1])/(1+S[0,1])
 def W2b(H,S): return (H[0,0] - H[0,1])/(1-S[0,1])
+
 
 # ao = 0.529177249
 # n = 100
 N = 2
 NG = 3
 R = 2.0035
-Ra=0
+Ra = 0
 Rb = Ra+R
+config = np.array([Ra,Rb])
 
 Za,Zb = 1,1
 
-S = matrix(N,NG,R,_S)
-T = matrix(N,NG,R,_T)
-V = matrix(N,NG,R,_V,Za,Zb)
+S = matrix(N,NG,config,_S)
+T = matrix(N,NG,config,_T)
+V = matrix(N,NG,config,_V,Za,Zb,config)
 H = T+V
 
 print("Overlap Matrix:\n",S)
@@ -111,9 +114,6 @@ print("Nuclear Repulsion:\n",Vnn)
 
 E1,E2 = W1+1/R, W2+1/R
 print("Total Energies:\n",E1,E2)
-
-print()
-print(W1b(H,S),W2b(H,S))
 
 
 

@@ -37,9 +37,19 @@ def G_matrix(m,P):
                     # print(munusl,mulsnu)
                     # print(i1,i2)
 
-                    G[mu,nu] += P[mu,nu]*(bielectronic[i1] - 0.5*bielectronic[i2])
+                    G[mu,nu] += P[l,s]*(bielectronic[i1] - 0.5*bielectronic[i2])
 
     return G
+
+def P_matrix(m,C):
+    P = np.zeros(shape=(m,m))
+    for l in range(m):
+        for s in range(m):
+            for j in range(int(N/2)):
+                P[l,s] += 2*C[l,j]*C[s,j]
+
+    return P
+
 
 def converged(P0,Pt,eps):
     """Determines if a step is converged with a certain tolerance (eps)."""
@@ -61,7 +71,8 @@ N = 2           # Number of electrons
 m = 2           # Number of basis functions
 R = 1.4         # H-H distance
 z = 1.24        # exponent
-eps = 1e-4
+eps = 1e-4      # SCF tolerance
+np.random.seed(3333)
 
 # Parametrized Hamiltonian and Overlapping matrices
 S = [1,0.6593]
@@ -73,10 +84,10 @@ T = np.array([t,t[::-1]])
 V = np.array([[-1.2266,-0.5974],[-0.5974,-0.6538]])
 H = T+V
 
-print("Overlap Matrix:\n",S)
-print("Kinetic Matrix:\n",T)
-print("e-N Potential Matrix:\n",V)
-print("Hamiltonian Matrix:\n",H)
+# print("Overlap Matrix:\n",S)
+# print("Kinetic Matrix:\n",T)
+# print("e-N Potential Matrix:\n",V)
+# print("Hamiltonian Matrix:\n",H)
 
 # Bielectronic integrals
 bielectronic = [0.7746,0.5697,0.4441,0.2970]
@@ -86,31 +97,46 @@ bielectronic = [0.7746,0.5697,0.4441,0.2970]
 Uij = 1/np.sqrt(2)
 U = np.array([[Uij,Uij],[Uij,-Uij]])
 
-Seval,Sevec = np.linalg.eig(S)
+Seval,U = np.linalg.eigh(S)
 X = U@np.linalg.inv(np.diag(np.sqrt(Seval)))
-print(X)
+print("U\n",X.T@S@X)
+
 
 # Randomly initialized MO
-C = np.random.uniform(-1,1,size=N)
-P0 = 2*np.outer(C,C)
+C = np.random.uniform(0,1,size=(m,m))
+P0 = np.zeros(shape=(m,m))
+print("P0\n",P0)
 
 
 while True:
-
-    G = G_matrix(m,P0)
+    print()
+    G = G_matrix(m,P0.copy())
+    print("G\n",G)
     F = H + G
+
     Ft =  X.T.conj()@F@X
+    print("Ft\n",Ft)
 
-    e,Ct = np.linalg.eig(Ft)
+    e,Ct = np.linalg.eigh(Ft)
+    print("e\n",e)
     C = X@Ct
+    print("C\n",C)
 
-    Pt = 2*np.outer(C,C)
+    Pt = P_matrix(m,C)
+    # Pt = 2*C@C.T
+    print("P\n",Pt)
+    print("P\n",P0)
 
 
     if converged(P0,Pt,eps):
-        print("Converged!")
+        print("\nConverged!")
+        print(C)
+        print(e)
+        break
 
-    P0 = Pt
+
+
+    P0 = Pt.copy()
 
 
 
