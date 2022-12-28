@@ -86,47 +86,38 @@ bielectronic = [0.7746,0.5697,0.4441,0.2970]
 Uij = 1/np.sqrt(2)
 U = np.array([[Uij,Uij],[Uij,-Uij]])
 
+Seval,Sevec = np.linalg.eig(S)
+X = U@np.linalg.inv(np.diag(np.sqrt(Seval)))
+print(X)
+
 # Randomly initialized MO
 C = np.random.uniform(-1,1,size=N)
+P0 = 2*np.outer(C,C)
+
 
 while True:
+
+    G = G_matrix(m,P0)
+    F = H + G
+    Ft =  X.T.conj()@F@X
+
+    e,Ct = np.linalg.eig(Ft)
+    C = X@Ct
+
+    Pt = 2*np.outer(C,C)
 
 
     if converged(P0,Pt,eps):
         print("Converged!")
 
+    P0 = Pt
 
 
 
-Seval,Sevec = np.linalg.eig(S)
-X = U@np.linalg.inv(np.diag(np.sqrt(Seval)))
-print(X)
 
-P = 2*np.outer(C,C)
 
-G = np.zeros(shape=(m,m))
 
-for mu in range(m):
-    for nu in range(m):
 
-        for l in range(m):
-            for s in range(m):
 
-                munusl = f"{mu+1}{nu+1}{s+1}{l+1}"
-                mulsnu = f"{mu+1}{l+1}{s+1}{nu+1}"
-                i1 = bie_index(munusl)    
-                i2 = bie_index(mulsnu)
-                # print(munusl,mulsnu)
-                # print(i1,i2)
 
-                G[mu,nu] += P[mu,nu]*(bielectronic[i1] - 0.5*bielectronic[i2])
 
-print(G)
-
-F = H + G
-
-Ft = X.T.conj()@F@X
-print("Transformed Fock Matrix:\n",Ft)
-
-e,Ct = np.linalg.eig(F)
-C = X@Ct
