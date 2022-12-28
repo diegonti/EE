@@ -5,15 +5,17 @@ Diego Ontiveros
 """
 
 import numpy as np
-import matplotlib.pyplot as plt
-from scipy.special import erf
 import sympy as sm
+from scipy.special import erf
+import matplotlib.pyplot as plt
 from time import time
 to = time()
-pi = np.pi
 
+# Constants and Symbols
+pi = np.pi
 W = sm.symbols("W")
 
+# Fit parameters for the STO-NG (d,alpha)
 coef = {
     "1g": [[1],[0.270950]],
     "2g": [[0.678914,0.430129],[0.151623,0.851819]],
@@ -46,74 +48,103 @@ def Fo(t):
 
 
 # Individual gaussian integrals
-def _S(a,b,Ra,Rb): return Norm(a,b)*(pi/(a+b))**(3/2) * np.exp(-a*b/(a+b)*(Ra-Rb)**2)
+def _S(a,b,Ra,Rb): 
+    """Overlap Integral"""
+    return Norm(a,b)*(pi/(a+b))**(3/2) * np.exp(-a*b/(a+b)*(Ra-Rb)**2)
 
 def _T(a,b,Ra,Rb): 
+    """Kinetic Integral"""
     fracc = a*b/(a+b)
     return fracc*(3-2*fracc*(Ra-Rb)**2)*_S(a,b,Ra,Rb)
 
 def _Vp(a,b,Ra,Rb,Z,Rc):
+    """Individual Electron-Nucleus atraction Integral"""
     Rp = (a*Ra + b*Rb)/(a+b)
     t = (a+b)*(Rp-Rc)**2
 
     return -2*pi/(a+b)*Z * np.exp(-a*b/(a+b)*(Ra-Rb)**2)*Fo(t) * Norm(a,b)
 
 def _V(a,b,Ra,Rb,Za,Zb,R):
+    """Electron-Nucleus atraction Integral. Accounts for both nucleus."""
     return _Vp(a,b,Ra,Rb,Za,R[0]) + _Vp(a,b,Ra,Rb,Zb,R[1])
 
 # Matrix elements
 def matrix(N,NG,R,f,*params):
+    """
+    Constructs the full matrix for a given contribution functions.
     
-    NG,d,a = NG_parser(NG)
-    a = np.array(a) * 1.24**2
+    Parameters 
+    ----------
+    `N` : Number of basis used
+    `NG`: Number of primitive gaussians in each basis
+    `R` : Configuration array. [Ra,Rb] for diatomic molecules.
+    `f` : Individual gaussian integral function to construct matrix of (overlap, _S, kinetic, _T, potential, _V)
+    `*params` : Extra parameters the functions may need. (Za, Zb for potential _V)
+    
+    Returns
+    -----------
+    `M` :: NxN matrix for the given integral.
+    """
+    
+    NG,d,a = NG_parser(NG)          # Get NG and coefitients
+    a = np.array(a) * 1.24**2       # Correcting alphas by the exponent
 
+    # Loop for all basis functions (N) and primitives (NG)
     M = np.zeros(shape=(N,N))
     for i in range(N):
         for j in range(N):
-            # if i==j: Rij = 0
-            # else: Rij = R
+
+            # Current configurations 
             Ra = R[i]
             Rb = R[j]
                             
             for p in range(NG):
                 for q in range(NG):
 
+                    # Updating each matrix coeffitient with STO-NG formula
                     M[i,j] += d[p]*d[q]*f(a[p],a[q],Ra,Rb, *params)
     return M
 
-def W1b(H,S): return (H[0,0] + H[0,1])/(1+S[0,1])
-def W2b(H,S): return (H[0,0] - H[0,1])/(1-S[0,1])
 
+###################### MAIN PROGRAM #################
 
 # ao = 0.529177249
 # n = 100
-N = 2
-NG = 3
-R = 2.0035
-Ra = 0
-Rb = Ra+R
-config = np.array([Ra,Rb])
 
-Za,Zb = 1,1
+NG = 3          # Number of primitive gaussian functions per basis
+R = 2.0035      # Distance between atoms
+N = 2           # Number of Basis functions
+Ra = 0          # Position of H(A)
+Rb = Ra+R       # Position of H(B)
+Za,Zb = 1,1     # Atomic charges of each nucleus
+config = np.array([Ra,Rb])  # Positions Array
 
+print("\nInput parameters:")
+print(f"{R = }  {NG = }")
+
+
+# Integral Matrices (Overlap and Hamiltonian)
 S = matrix(N,NG,config,_S)
 T = matrix(N,NG,config,_T)
 V = matrix(N,NG,config,_V,Za,Zb,config)
 H = T+V
 
-print("Overlap Matrix:\n",S)
-print("Kinetic Matrix:\n",T)
-print("Potential Matrix:\n",V)
+print("\nOverlap Matrix (S):\n",S)
+print("\nKinetic Matrix (T):\n",T)
+print("\nPotential Matrix (V):\n",V)
+print("\nHamiltonian Matrix (H):\n",V)
 
+
+# Solving for W1, W2 with SymPy by solving Characterystic polynomial# 
 M = sm.Matrix(H-W*S)
 W1,W2 = sm.solve(M.det())
-print("Electronic Energies:\n",W1,W2)
+print("\nElectronic Energies (W):\n",W1,W2)
 
 Vnn = 1/R
-print("Nuclear Repulsion:\n",Vnn)
+print("\nNuclear Repulsion (Vnn):\n",Vnn)
 
 E1,E2 = W1+1/R, W2+1/R
-print("Total Energies:\n",E1,E2)
+print("\nTotal Energies (E):\n",E1,E2)
 
 
 
