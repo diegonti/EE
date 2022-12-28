@@ -102,15 +102,16 @@ print(V)
 
 M = sm.Matrix(H-W*S)
 W1,W2 = sm.solve(M.det())
-print(W1)
-print(W2)
+print(W1,W2)
+
+Vnn = 1/R
+print(Vnn)
 
 E1,E2 = W1+1/R, W2+1/R
 print(E1,E2)
 
 print()
-print(W1b(H,S))
-print(W2b(H,S))
+print(W1b(H,S),W2b(H,S))
 
 
 
