@@ -1,6 +1,8 @@
 """
 Practice Session 2 -  Problem 5
-H2+ PES made from 1s STO-NG. Energies.
+H2+ energies made from 1s STO-NG.
+Computes E1 and E2 for a given R and NG.
+Plots the PES of the ground and first excited state for the given NG.
 Diego Ontiveros
 """
 
@@ -108,10 +110,9 @@ def matrix(N,NG,R,f,*params):
 
 ###################### MAIN PROGRAM #################
 
-# ao = 0.529177249
-# n = 100
 
-NG = 3          # Number of primitive gaussian functions per basis
+# Input parameters
+NG = 1          # Number of primitive gaussian functions per basis
 R = 2.0035      # Distance between atoms
 N = 2           # Number of Basis functions
 Ra = 0          # Position of H(A)
@@ -148,28 +149,38 @@ print("\nTotal Energies (E):\n",E1,E2)
 
 
 
+# Plots PES of ground and first excited state
+n = 100                         # Number of study points
+ao = 0.529177249                # 1ao (au) = 0.529177249 Armsotrongs
+R = np.linspace(0.2,5.,n)/ao    # Values for R(A-B) distance
 
-# n = 5000                        # Number of study points
-# ao = 0.529177249                # 1ao (au) = 0.529177249 Armsotrongs
-# k = np.linspace(0.4,2.,n)       # Values for k parameter
-# R = np.linspace(0.8,2.,n)/ao    # Values for R(A-B) distance
+energies = np.zeros((2,n))
+for i,Ri in enumerate(R):
+    config = np.array([0,Ri])
+    S = matrix(N,NG,config,_S)
+    T = matrix(N,NG,config,_T)
+    V = matrix(N,NG,config,_V,Za,Zb,config)
+    H = T+V
 
-# kk,RR = np.meshgrid(k,R)        # All possible k-R combinations
-# E1 = W1(kk,RR)+1/RR              # Feed to the energy integral  
-# minE = E1.min()                  # Minimum total enegry
+    M = sm.Matrix(H-W*S)
+    W1,W2 = sm.solve(M.det())   
+    Vnn = 1/Ri
+    E1,E2 = W1+1/Ri, W2+1/Ri
+    energies[0][i] = E1
+    energies[1][i] = E2
 
-
-# print()
-# print("Optimized k:           ",mink)
-# print("Optimized R (a.u):     ",minR)
-# print()
-# print("Minimum Energy (a.u):   ",minE)  
-# print("Electronic Energy (a.u):",minE-1/minR)
-# print("Nuclear Repulsion (a.u): ",1/minR)
-
-
+plt.plot(R,energies[0],c="r")
+plt.plot(R,energies[1],c="b")
 
 
+plt.title("PES for the two lowest states of H$_2^+$")
+plt.xlabel("R (a.u)");plt.ylabel("E ($E_h$)")
+plt.xticks(np.arange(0,round(R[-1]+1),1))
+plt.xlim(R[0],R[-1]); plt.ylim(ymax=1)
+plt.legend(["$E_1$","$E_2$"])
+
+
+plt.savefig(f"p5{NG}G.jpg",dpi=600)
 
 tf = time()
 print(f"\nProcess finished in {tf-to:.2f}s.")
