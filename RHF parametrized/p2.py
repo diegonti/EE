@@ -3,21 +3,11 @@ Practice Session 3 -  Problem 2
 Parametrized RHF for HHe+ molecule.
 Diego Ontiveros
 """
-import numpy as np
-import matplotlib.pyplot as plt
-
-S = [0.4508]
-t = [0.21643,2.1643,0.7600]
-v = [[-4.1398,-1.1029,-1.2652],
-    [-0.6772,-0.4113,-1.226]]
-jk = [1.3072,0.7746,0.6057,0.4373,0.3118,0.1773]
-
-
 
 import numpy as np
 
 def bie_index(ijkl):
-    """Takes string od the indices of the bielectronic integral and returns
+    """Takes string of the indices of the bielectronic integral and returns
     the index of the bielectronic parametrized array of integrals it corresponds."""
     i,j,k,l =[int(t) for t in ijkl]
     sij = i+j if i!=j else i
@@ -73,7 +63,7 @@ def converged(P0,Pt,eps):
 
 N = 2               # Number of electrons
 m = 2               # Number of basis functions
-R = 1.4632          # H-H distance
+R = 1.4632          # He-H distance
 
 Za,Zb = 2,1         # Nuclear atomic charges
 za,zb = 2.0925,1.24 # Exponents
@@ -85,6 +75,12 @@ np.random.seed(3333)
 S = [1,0.6593]
 t = [0.7600,0.2365]
 v = [-1.2266,-0.5974,-0.6538]
+
+S = [1,0.4508]
+t = [0.21643,2.1643,0.7600]
+v = [[-4.1398,-1.1029,-1.2652],
+    [-0.6772,-0.4113,-1.226]]
+jk = [1.3072,0.7746,0.6057,0.4373,0.3118,0.1773]
 
 S = np.array([S,S[::-1]])
 T = np.array([t,t[::-1]])
