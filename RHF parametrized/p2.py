@@ -1,3 +1,8 @@
+"""
+Practice Session 3 -  Problem 2
+Parametrized RHF for HHe+ molecule.
+Diego Ontiveros
+"""
 import numpy as np
 import matplotlib.pyplot as plt
 

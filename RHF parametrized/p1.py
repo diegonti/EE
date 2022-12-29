@@ -1,6 +1,6 @@
 """
 Practice Session 3 -  Problem 1
-Parametrized HF for H2 molecule.
+Parametrized RHF for H2 molecule.
 Diego Ontiveros
 """
 
