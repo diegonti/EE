@@ -20,7 +20,7 @@ def bie_index(ijkl:str):
     sij = i+j if i!=j else i
     skl = k+l if k!=l else k
     sijkl = [sij,skl]
-    if len(set(ijkl))<=1: return 0              # (ii|ii) cases
+    if len(set(ijkl)) <= 1: return 0              # (ii|ii) cases
     elif sorted(sijkl) == [1,2]: return 1       # (ii|jj) cases
     elif sorted(sijkl) == [1,3]: return 2       # (ii|ij) cases
     elif sorted(sijkl) == [2,3]: return 2       # (jj|ij) cases
