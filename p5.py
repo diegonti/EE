@@ -112,7 +112,7 @@ def matrix(N,NG,R,f,*params):
 
 
 # Input parameters
-NG = 1          # Number of primitive gaussian functions per basis
+NG = 3          # Number of primitive gaussian functions per basis
 R = 2.0035      # Distance between atoms
 N = 2           # Number of Basis functions
 Ra = 0          # Position of H(A)

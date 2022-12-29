@@ -22,8 +22,8 @@ def bie_index(ijkl):
 
 def G_matrix(m,P):
     """Computed bielectornic matrix."""
-    G = np.zeros(shape=(m,m))
 
+    G = np.zeros(shape=(m,m))
     for mu in range(m):
         for nu in range(m):
 
@@ -38,7 +38,7 @@ def G_matrix(m,P):
                     # print(i1,i2)
 
                     G[mu,nu] += P[l,s]*(bielectronic[i1] - 0.5*bielectronic[i2])
-
+                    ######### Mirar bien las integrales! Ojo, usted!
     return G
 
 def P_matrix(m,C):
@@ -54,14 +54,8 @@ def P_matrix(m,C):
 def converged(P0,Pt,eps):
     """Determines if a step is converged with a certain tolerance (eps)."""
     m = len(Pt)
-    diff = 0
-    for mu in range(m):
-        for nu in range(m):
-            diff += (Pt[nu,mu]-P0[nu,mu])**2
-    # Probar  de hacerlo con arrays!!!
-
-    diff = np.sqrt(diff/m**2)
-
+    diff = np.sqrt(np.sum((Pt-P0)**2)/m**2)
+    
     if diff<=eps: return True
     else: return False
 
@@ -70,8 +64,10 @@ def converged(P0,Pt,eps):
 N = 2           # Number of electrons
 m = 2           # Number of basis functions
 R = 1.4         # H-H distance
+Za,Zb = 1,1     # Nuclear atomic charges
 z = 1.24        # exponent
 eps = 1e-4      # SCF tolerance
+max_iter = 1    # Maximum number of iterations
 np.random.seed(3333)
 
 # Parametrized Hamiltonian and Overlapping matrices
@@ -84,10 +80,11 @@ T = np.array([t,t[::-1]])
 V = np.array([[-1.2266,-0.5974],[-0.5974,-0.6538]])
 H = T+V
 
-# print("Overlap Matrix:\n",S)
-# print("Kinetic Matrix:\n",T)
-# print("e-N Potential Matrix:\n",V)
-# print("Hamiltonian Matrix:\n",H)
+print("\nOverlap Matrix:\n",S)
+print("\nKinetic Matrix:\n",T)
+print("\ne-N Potential Matrix:\n",V)
+print("\nHamiltonian Matrix:\n",H)
+
 
 # Bielectronic integrals
 bielectronic = [0.7746,0.5697,0.4441,0.2970]
@@ -98,21 +95,43 @@ Uij = 1/np.sqrt(2)
 U = np.array([[Uij,Uij],[Uij,-Uij]])
 
 Seval,U = np.linalg.eigh(S)
-X = U@np.linalg.inv(np.diag(np.sqrt(Seval)))
-print("U\n",X.T@S@X)
+S12 = np.diag(Seval**-0.5)
+print("\nS12\n",S12)
+print("\nU\n",U)
+
+# S12 = np.linalg.inv(np.diag(np.sqrt(Seval)))
+# print("\nS12\n",S12)
+
+X = U@S12       #U@S12@U.T.conj()         ###### Probar U_dada y U_evec
+print("\nX\n",X)
+print("\nXSX\n",X.T@S@X)
+
+# Posible 
+# X[0,0] = 1.0/np.sqrt(2.0*(1.0+S12)
+# X[1,0] = X[0,0]
+# X[0,1] = 1.0/np.sqrt(2.0*(1.0-S12))
+# X[1,1] = -X[0,1]
+
 
 
 # Randomly initialized MO
 C = np.random.uniform(0,1,size=(m,m))
 P0 = np.zeros(shape=(m,m))
-print("P0\n",P0)
+print("\nP0\n",P0)
 
-
+print("\n\nEntering SCF loop...")
+n_iterations = 0
 while True:
-    print()
+    n_iterations +=1
+    print(f"\nIternation {n_iterations}")
+
     G = G_matrix(m,P0.copy())
     print("G\n",G)
+
     F = H + G
+    print("F\n",F)
+
+    Eelec = np.sum(0.5*P0*(H+F))
 
     Ft =  X.T.conj()@F@X
     print("Ft\n",Ft)
@@ -125,17 +144,32 @@ while True:
     Pt = P_matrix(m,C)
     # Pt = 2*C@C.T
     print("P\n",Pt)
-    print("P\n",P0)
+    print("P0\n",P0)
+
+    print("\nElcetronic Energy: \n", Eelec)
 
 
     if converged(P0,Pt,eps):
         print("\nConverged!")
         print(C)
         print(e)
+
+        # Functon to print info!
+        Vnn = 1/R
+        Eelec = Eelec
+        E = Eelec + Za*Zb/R
+        Mulliken = Pt@S
+        print("\nElectronic Energy: Eelec =",Eelec)
+        print("Nuclear Repulsion:   Vnn = ",Vnn)
+        print("Total energy:          E = ",Eelec+Vnn)
+
         break
 
+    if n_iterations >= max_iter:
+        print("\n Not converged!")
+        break
 
-
+    
     P0 = Pt.copy()
 
 

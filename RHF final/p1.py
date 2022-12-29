@@ -1,5 +1,5 @@
 """
-Practice Session 3 -  Problem 1
+Practice Session 4 -  Problem 1
 Parametrized HF for H2 molecule.
 Diego Ontiveros
 """
