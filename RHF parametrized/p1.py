@@ -139,13 +139,13 @@ while True:
     print_title(f"SCF Iternation: {n_iterations}",head=1,tail=0,before=10,after=0)
 
     # SCF step
-    G = G_matrix(P0.copy())     # Bielectronic Matrix
-    F = H + G                   # Fock Matrix
-    Ft =  X.T.conj()@F@X        # Tranformed Fock Matrix
-    e,Ct = np.linalg.eigh(Ft)   # Orbital Energies and transformed coefs
-    C = X@Ct                    # Orbital Coeffitients
-    Pt = P_matrix(m,C)          # Denisty Matrix
-    Eelec = 0.5*np.sum(Pt*(H+F))
+    G = G_matrix(P0.copy())         # Bielectronic Matrix
+    F = H + G                       # Fock Matrix
+    Ft =  X.T.conj()@F@X            # Tranformed Fock Matrix
+    e,Ct = np.linalg.eigh(Ft)       # Orbital Energies and transformed coefs
+    C = X@Ct                        # Orbital Coeffitients
+    Pt = P_matrix(m,C)              # Denisty Matrix
+    Eelec = 0.5*np.sum(Pt*(H+F))    # Electronic Energy E0
     
     # Printing current iteration results
     print("\nBielectronic Matrix G:\n",G)
