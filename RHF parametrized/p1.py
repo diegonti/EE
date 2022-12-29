@@ -5,6 +5,7 @@ Diego Ontiveros
 """
 
 import numpy as np
+from scipy import linalg
 
 def bie_index(ijkl):
     """Takes string od the indices of the bielectronic integral and returns
@@ -34,6 +35,13 @@ def G_matrix(m,P):
                     mulsnu = f"{mu+1}{l+1}{s+1}{nu+1}"
                     i1 = bie_index(munusl)    
                     i2 = bie_index(mulsnu)
+
+                    # munuls = f"{mu+1}{nu+1}{l+1}{s+1}"
+                    # muslnu = f"{mu+1}{s+1}{l+1}{nu+1}"
+                    # i1 = bie_index(munuls)    
+                    # i2 = bie_index(muslnu)
+
+
                     # print(munusl,mulsnu)
                     # print(i1,i2)
 
@@ -67,7 +75,7 @@ R = 1.4         # H-H distance
 Za,Zb = 1,1     # Nuclear atomic charges
 z = 1.24        # exponent
 eps = 1e-4      # SCF tolerance
-max_iter = 1    # Maximum number of iterations
+max_iter = 10    # Maximum number of iterations
 np.random.seed(3333)
 
 # Parametrized Hamiltonian and Overlapping matrices
@@ -94,6 +102,12 @@ bielectronic = [0.7746,0.5697,0.4441,0.2970]
 Uij = 1/np.sqrt(2)
 U = np.array([[Uij,Uij],[Uij,-Uij]])
 
+S_inverse = linalg.inv(S)
+S_inverse_sqrt = linalg.sqrtm(S_inverse)
+# S^{-1/2} F S^{-1/2}
+# F_unitS = np.dot(S_inverse_sqrt, np.dot(F, S_inverse_sqrt))
+print("\nX\n",S_inverse_sqrt)
+
 Seval,U = np.linalg.eigh(S)
 S12 = np.diag(Seval**-0.5)
 print("\nS12\n",S12)
@@ -102,15 +116,19 @@ print("\nU\n",U)
 # S12 = np.linalg.inv(np.diag(np.sqrt(Seval)))
 # print("\nS12\n",S12)
 
-X = U@S12       #U@S12@U.T.conj()         ###### Probar U_dada y U_evec
-print("\nX\n",X)
-print("\nXSX\n",X.T@S@X)
+X = U@S12@U.T       #U@S12@U.T.conj()         ###### Probar U_dada y U_evec
 
 # Posible 
-# X[0,0] = 1.0/np.sqrt(2.0*(1.0+S12)
+# S12 = S[0,1]
+# X[0,0] = 1.0/np.sqrt(2.0*(1.0+S12))
 # X[1,0] = X[0,0]
 # X[0,1] = 1.0/np.sqrt(2.0*(1.0-S12))
 # X[1,1] = -X[0,1]
+
+print("\nX\n",X)
+print("\nXSX\n",X.T@S@X)
+
+
 
 
 
@@ -125,30 +143,38 @@ while True:
     n_iterations +=1
     print(f"\nIternation {n_iterations}")
 
+    # Bielectronic Matrix
     G = G_matrix(m,P0.copy())
     print("G\n",G)
 
+    # Fock Matrix
     F = H + G
     print("F\n",F)
 
-    Eelec = np.sum(0.5*P0*(H+F))
+    
 
+    # Tranformed Fock Matrix
     Ft =  X.T.conj()@F@X
     print("Ft\n",Ft)
 
+
+    # Orbital energies and coefs
     e,Ct = np.linalg.eigh(Ft)
     print("e\n",e)
     C = X@Ct
     print("C\n",C)
 
+    # Denisty Matrix
     Pt = P_matrix(m,C)
     # Pt = 2*C@C.T
     print("P\n",Pt)
     print("P0\n",P0)
 
+    Eelec = 0.5*np.sum(Pt*(H+F))
+
     print("\nElcetronic Energy: \n", Eelec)
 
-
+    # Convergence
     if converged(P0,Pt,eps):
         print("\nConverged!")
         print(C)
