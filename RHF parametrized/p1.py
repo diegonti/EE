@@ -103,10 +103,10 @@ T = np.array([t,t[::-1]])       # Kinetix Matrix
 V = np.array([v,v[::-1]])       # VNe Matrix
 H = T+V                         # Hamiltonian
 
-print("\nOverlap Matrix:\n",S)
-print("\nKinetic Matrix:\n",T)
-print("\ne-N Potential Matrix:\n",V)
-print("\nHamiltonian Matrix:\n",H)
+print("\nOverlap Matrix S:\n",S)
+print("\nKinetic Matrix T:\n",T)
+print("\ne-N Potential Matrix V:\n",V)
+print("\nHamiltonian Matrix H:\n",H)
 
 
 # Bielectronic integrals array
@@ -116,13 +116,13 @@ bielectronic = [0.7746,0.5697,0.4441,0.2970]
 # Transformation Matrix X from S so that XSX=1
 Seval,U = np.linalg.eigh(S)
 S12 = np.diag(Seval**-0.5)
-print("\nS12\n",S12)
-print("\nU\n",U)
+print("\nSquareroot inverse of S\n",S12)
+print("\nUnitary Matrix U\n",U)
 
 X = U@S12      #U@S12@U.T.conj() also works   
 
-print("\nX\n",X)
-print("\nXSX\n",X.T@S@X)
+print("\nTransformation MatrixX\n",X)
+print("\nMatrix product XSX = 1\n",X.T@S@X)
 
 
 # Guess density matrix (at zero)
