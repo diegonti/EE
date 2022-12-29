@@ -121,7 +121,7 @@ print("\nUnitary Matrix U\n",U)
 
 X = U@S12      #U@S12@U.T.conj() also works   
 
-print("\nTransformation MatrixX\n",X)
+print("\nTransformation Matrix X\n",X)
 print("\nMatrix product XSX = 1\n",X.T@S@X)
 
 
