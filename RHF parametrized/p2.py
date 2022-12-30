@@ -20,11 +20,13 @@ def bie_index(ijkl:str):
     sij = i+j if i!=j else i
     skl = k+l if k!=l else k
     sijkl = [sij,skl]
-    if len(set(ijkl)) <= 1: return 0              # (ii|ii) cases
-    elif sorted(sijkl) == [1,2]: return 1       # (ii|jj) cases
-    elif sorted(sijkl) == [1,3]: return 2       # (ii|ij) cases
-    elif sorted(sijkl) == [2,3]: return 2       # (jj|ij) cases
-    elif sorted(sijkl) == [3,3]: return 3       # (ij|ij) cases
+    sorted_sijkl = sorted(sijkl)
+    if sorted_sijkl == [1,1]: return 0         # (11|11) case
+    elif sorted_sijkl == [2,2]: return 1       # (22|22) case
+    elif sorted_sijkl == [1,2]: return 2       # (ii|jj) cases
+    elif sorted_sijkl == [1,3]: return 3       # (11|ij) cases
+    elif sorted_sijkl == [2,3]: return 4       # (22|ij) cases
+    elif sorted_sijkl == [3,3]: return 5       # (ij|ij) cases
     else: raise ValueError("Bielectronic indices nor valid.")
 
 def G_matrix(P):
@@ -46,6 +48,7 @@ def G_matrix(P):
                     mulsnu = f"{mu+1}{l+1}{s+1}{nu+1}"
                     i1 = bie_index(munusl)    
                     i2 = bie_index(mulsnu)
+
 
                     G[mu,nu] += P[l,s]*(bielectronic[i1] - 0.5*bielectronic[i2])
 
@@ -96,11 +99,11 @@ S = [1,0.4508]
 t = [2.1643,0.7600,0.1617]
 v = np.array(
     [[-4.1398,-1.1029,-1.2652],
-    [-0.6772,-0.4113,-1.226]])
+    [-0.6772,-0.4113,-1.2266]])
 ######## CAMBIOS
-vaa = v[0,0] + v[1,2]
+vaa = v[0,0] + v[1,0]
+vbb = v[0,2] + v[1,2]
 vab = v[0,1] + v[1,1]
-vbb = v[1,0] + v[0,2]
 
 S = np.array([S,S[::-1]])
 T = np.array([[2.1643,0.1617],[0.1617,0.7600]])
@@ -123,7 +126,7 @@ S12 = np.diag(Seval**-0.5)
 print("\nSquareroot inverse of S\n",S12)
 print("\nUnitary Matrix U\n",U)
 
-X = U@S12      #U@S12@U.T.conj() also works   
+X = U@S12     #U@S12@U.T.conj() also works   
 
 print("\nTransformation Matrix X\n",X)
 print("\nMatrix product XSX = 1\n",X.T@S@X)
@@ -143,13 +146,13 @@ while True:
     print_title(f"SCF Iternation: {n_iterations}",head=1,tail=0,before=10,after=0)
 
     # SCF step
-    G = G_matrix(P0.copy())     # Bielectronic Matrix
-    F = H + G                   # Fock Matrix
-    Ft =  X.T.conj()@F@X        # Tranformed Fock Matrix
-    e,Ct = np.linalg.eigh(Ft)   # Orbital Energies and transformed coefs
-    C = X@Ct                    # Orbital Coeffitients
-    Pt = P_matrix(m,C)          # Denisty Matrix
-    Eelec = 0.5*np.sum(Pt*(H+F))
+    G = G_matrix(P0.copy())         # Bielectronic Matrix
+    F = H + G                       # Fock Matrix
+    Ft =  X.T.conj()@F@X            # Tranformed Fock Matrix
+    e,Ct = np.linalg.eigh(Ft)       # Orbital Energies and transformed coefs
+    C = X@Ct                        # Orbital Coeffitients
+    Pt = P_matrix(m,C)              # Denisty Matrix
+    Eelec = 0.5*np.sum(Pt*(H+F))    # Electronic Energy E0
     
     # Printing current iteration results
     print("\nBielectronic Matrix G:\n",G)
