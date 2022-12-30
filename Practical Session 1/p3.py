@@ -1,6 +1,6 @@
 """
 Practice Session 1 -  Problem 3
-Ploting X1s (H and He) functions expressed with 
+Ploting X1s (H and He+) functions expressed with 
 STO, STO-1G, STO-2G and STO-3G 
 Diego Ontiveros
 """

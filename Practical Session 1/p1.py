@@ -1,6 +1,6 @@
 """
 Practice Session 1 -  Problem 1
-Finding optimized paramaters and energy for GTO.
+Finding optimized parameters and energy for GTO.
 Diego Ontiveros
 """
 
