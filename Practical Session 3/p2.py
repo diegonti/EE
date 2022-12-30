@@ -96,11 +96,10 @@ max_iter = 10       # Maximum number of iterations
 
 # Parametrized Hamiltonian and Overlapping matrices
 S = [1,0.4508]
-t = [2.1643,0.7600,0.1617]
+t = [2.1643,0.7600,0.1670]
 v = np.array(
     [[-4.1398,-1.1029,-1.2652],
     [-0.6772,-0.4113,-1.2266]])
-######## CAMBIOS
 vaa = v[0,0] + v[1,0]
 vbb = v[0,2] + v[1,2]
 vab = v[0,1] + v[1,1]
