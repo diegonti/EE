@@ -73,20 +73,20 @@ class Molecule():
         self.N_electrons = N_electrons
 
     def get_parameters(self):
+        # Devuelve alphas normas y tal. Sirve?
         pass
 
        
 class RHF():
 
     def __init__(self,
-        molecule: Molecule = None,
-        NG: int|str = None):
+        molecule: Molecule,
+        NG: int|str):
         """
         Class that contains the RHF calculations for two-electron diatomic molecules using the STO-NG basis set.
 
         Parameters
         ----------
-        (Optional, can also be loaded with the load() function)
         `molecule` : Molecule ocject the RHF will be based on.
         `NG` : Number of primitive gaussians used for the STO-NG basis. Accepts int (3) or str ("3g").
         """
@@ -99,8 +99,16 @@ class RHF():
         pass
 
 
+    def SCF(self,P0:np.ndarray=None,eps:float=1e-4,max_iter:int=100):
+        """
+        Employs SCF method to obtain the orbital energies and coefitients. 
 
-    def SCF(self,eps:float=1e-4,max_iter:int=100):
+        Parameters
+        ----------
+        `P0` : Optional. m x m Initial guess density matrix. By default zero.
+        `eps` : Optional. Tolerance for the SCF convergence. By default 1e-4.
+        `max_iter` : Optional. Maximum number of iterations for the SCF loop. By default 100.
+        """
 
         config = self.molecule.geometry
         m = self.m
@@ -125,8 +133,11 @@ class RHF():
 
 
         # Compute bielectronic integrals
-        bielectronic = bielectronic_matrix()
-        bielectronic = [0.7746,0.5697,0.4441,0.2970]
+        bielectronic = bielectronic_matrix(m,NG,config)
+        # bielectronic = [0.7746,0.5697,0.4441,0.2970]
+        print("\nBielectronic Tensor (ij|kl):\n",bielectronic)
+
+
         ###################Print bielectronic function
 
 
@@ -142,7 +153,8 @@ class RHF():
 
 
         # Guess density matrix (at zero)
-        P0 = np.zeros(shape=(m,m))
+        if P0 is None:
+            P0 = np.zeros(shape=(m,m))
         print("\nGuess P0\n",P0)
 
 
@@ -150,6 +162,7 @@ class RHF():
         print_title("Entering SCF loop")
         n_iterations = 0
         while True:
+
             n_iterations += 1
             print_title(f"SCF Iternation: {n_iterations}",head=1,tail=0,before=10,after=0)
 
@@ -203,6 +216,10 @@ class RHF():
         
         pass
 
+    def molecular_matrices():
+        # Computes S, T, V Matrices
+        pass
+
 
 
 # Matrix elements
@@ -212,8 +229,8 @@ def molecular_matrix(N,NG,R,f,*params):
     
     Parameters 
     ----------
-    `N` : Number of basis used
-    `NG`: Number of primitive gaussians in each basis
+    `N` : Number of basis functions used.
+    `NG`: Number of primitive gaussians in each basis.
     `R` : Configuration array. [Ra,Rb] for diatomic molecules.
     `f` : Individual gaussian integral function to construct matrix of (overlap, _S, kinetic, _T, potential, _V)
     `*params` : Extra parameters the functions may need. (Za, Zb for potential _V)
@@ -231,7 +248,7 @@ def molecular_matrix(N,NG,R,f,*params):
     for i in range(N):
         for j in range(N):
 
-            # Current configurations 
+            # Current gaussian center 
             Ra = R[i]
             Rb = R[j]
                             
@@ -242,8 +259,45 @@ def molecular_matrix(N,NG,R,f,*params):
                     M[i,j] += d[p]*d[q]*f(a[p],a[q],Ra,Rb, *params)
     return M
 
-def bielectronic_matrix():
-    pass
+def bielectronic_matrix(N,NG,R):
+    """
+    Constructs full bielectronic tensor for each ijkl integral.
+
+    Parameters
+    ----------
+    `N` : Number of basis functions used.
+    `NG`: Number of primitive gaussians in each basis.
+    `R` : Configuration array. [Ra,Rb] for diatomic molecules.
+
+    Returns
+    ----------
+    `M` : N x N x N x N bielectronic tensor.
+    """
+    M = np.zeros(shape=(N,N,N,N))
+
+    NG,d,a = NG_parser(NG)          # Get NG and coefitients
+    a = np.array(a) * 1.24**2       # Correcting alphas by the exponent
+
+    for i in range(N):
+        for j in range(N):
+            for k in range(N):
+                for l in range(N):
+
+                    # Current gaussian center
+                    Ra,Rb = R[i],R[j]
+                    Rc,Rd = R[k],R[l]
+
+                    for p in range(NG):
+                        for q in range(NG):
+                            for r in range(NG):
+                                for s in range(NG):
+
+                                    d_coefs = d[p]*d[q]*d[r]*d[s]
+
+                                    M[i,j,k,l] += d_coefs*_ijkl(a[p],a[q],a[r],a[s], Ra,Rb,Rc,Rd)
+
+
+    return M
 
 
 ################  Individual gaussian molecular integrals  #####################
@@ -274,7 +328,7 @@ def _V(a,b,Ra,Rb,Za,Zb,R):
 
 
 def _ijkl(a,b,c,d,Ra,Rb,Rc,Rd):     ####################### OJO
-    """Bi-electronic Integral"""
+    """Bi-electronic Integral """
     Rp = (a*Ra + b*Rb)/(a+b)
     Rq = (c*Rc + d*Rd)/(c+d)
     norms = Norm(a,b)*Norm(c,d)
@@ -309,16 +363,16 @@ def G_matrix(P,bielectronic):
                 for s in range(m):
  
                     # Getting ijkl and index of the integral it corresponds
-                    munusl = f"{mu+1}{nu+1}{s+1}{l+1}"
-                    mulsnu = f"{mu+1}{l+1}{s+1}{nu+1}"
-                    i1 = bie_index(munusl)    
-                    i2 = bie_index(mulsnu)
+                    # munusl = f"{mu+1}{nu+1}{s+1}{l+1}"
+                    # mulsnu = f"{mu+1}{l+1}{s+1}{nu+1}"
+                    # i1 = bie_index(munusl)    
+                    # i2 = bie_index(mulsnu)
 
 
-                    G[mu,nu] += P[l,s]*(bielectronic[i1] - 0.5*bielectronic[i2])
+                    # G[mu,nu] += P[l,s]*(bielectronic[i1] - 0.5*bielectronic[i2])
                    
 
-                    # G[mu,nu] += P[l,s]*(bielectronic[mu,nu,s,l] - 0.5*bielectronic[mu,l,s,nu])
+                    G[mu,nu] += P[l,s]*(bielectronic[mu,nu,s,l] - 0.5*bielectronic[mu,l,s,nu])
 
     return G
 
@@ -352,19 +406,19 @@ def converged(P0,Pt,eps):
 
 
 
-def bie_index(ijkl:str):
-    """Takes string of the "ijkl" indices of the bielectronic integral and returns
-    the index of the bielectronic parametrized array of integrals it corresponds."""
-    i,j,k,l =[int(t) for t in ijkl]
-    sij = i+j if i!=j else i
-    skl = k+l if k!=l else k
-    sijkl = [sij,skl]
-    if len(set(ijkl)) <= 1: return 0            # (ii|ii) cases
-    elif sorted(sijkl) == [1,2]: return 1       # (ii|jj) cases
-    elif sorted(sijkl) == [1,3]: return 2       # (ii|ij) cases
-    elif sorted(sijkl) == [2,3]: return 2       # (jj|ij) cases
-    elif sorted(sijkl) == [3,3]: return 3       # (ij|ij) cases
-    else: raise ValueError("Bielectronic indices nor valid.")
+# def bie_index(ijkl:str):
+#     """Takes string of the "ijkl" indices of the bielectronic integral and returns
+#     the index of the bielectronic parametrized array of integrals it corresponds."""
+#     i,j,k,l =[int(t) for t in ijkl]
+#     sij = i+j if i!=j else i
+#     skl = k+l if k!=l else k
+#     sijkl = [sij,skl]
+#     if len(set(ijkl)) <= 1: return 0            # (ii|ii) cases
+#     elif sorted(sijkl) == [1,2]: return 1       # (ii|jj) cases
+#     elif sorted(sijkl) == [1,3]: return 2       # (ii|ij) cases
+#     elif sorted(sijkl) == [2,3]: return 2       # (jj|ij) cases
+#     elif sorted(sijkl) == [3,3]: return 3       # (ij|ij) cases
+#     else: raise ValueError("Bielectronic indices nor valid.")
 
 
 # Input parameters
