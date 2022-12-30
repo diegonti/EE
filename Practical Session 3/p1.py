@@ -172,7 +172,7 @@ while True:
         print("\nNumber of SCF iterations:",n_iterations)
         print("\nElectronic Energy: Eelec =",Eelec)
         print("Nuclear Repulsion:   Vnn = ",Vnn)
-        print("Total energy:          E = ",Eelec+Vnn)
+        print("Total Energy:          E = ",Eelec+Vnn)
 
         print("\nOrbital Energies e:\n",e)
         print("\nOrbital Coeffitients C:\n",C)
