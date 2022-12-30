@@ -133,7 +133,7 @@ H = T+V
 print("\nOverlap Matrix (S):\n",S)
 print("\nKinetic Matrix (T):\n",T)
 print("\nPotential Matrix (V):\n",V)
-print("\nHamiltonian Matrix (H):\n",V)
+print("\nHamiltonian Matrix (H):\n",H)
 
 
 # Solving for W1, W2 with SymPy by solving Characterystic polynomial# 
