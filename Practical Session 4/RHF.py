@@ -1,6 +1,7 @@
 """
-Module that contains the functions used for
-computing RHF integrals and matrices.
+Module for the RHF program.
+Contains the Molecule class, which allows to create a molecuke with its geometry and information (charges, electrons,..)
+And the RHF class, which reads a Molecule object and performs RHF calculations usinc SCF with the STO-NG basis set.
 
 Diego Ontiveros
 """
@@ -19,11 +20,6 @@ coef = {
     "2g": [[0.678914,0.430129],[0.151623,0.851819]],
     "3g": [[0.444635,0.535328,0.154329],[0.109818,0.405771,2.22766]]
 }
-
-def print_title(text,before=15,after=15,separator="-",head=2,tail=1):
-    """Prints text in a title-style."""
-    separator = str(separator)
-    print("\n"*head,separator*before,text,separator*after,"\n"*tail)
 
 def NG_parser(NG):
     """ 
@@ -69,6 +65,7 @@ class Molecule():               ######### +atom label implementation with dict c
         self.effective_charges = effective_charges
         self.Natoms = len(charges)
         self.N_electrons = N_electrons
+        #self.labels
 
        
 class RHF():
@@ -90,8 +87,11 @@ class RHF():
         self.N = molecule.N_electrons
 
 
-
-    def SCF(self,P0:np.ndarray=None,eps:float=1e-4,max_iter:int=100,print_options:list=["all"]):
+    def SCF(self,
+        P0:np.ndarray=None,
+        eps:float=1e-4,
+        max_iter:int=100,
+        print_options:list=["all"]):
         """
         Employs SCF method to obtain the orbital energies and coefitients. 
 
@@ -109,23 +109,21 @@ class RHF():
                 "all" --> Prints everything. \n
                 None or "nothing" --> Prints only final results and steps.
         """
-
-        config = self.molecule.geometry
         m = self.m
         NG = self.NG
-        z = self.molecule.effective_charges
+        N = self.molecule.N_electrons
+        config = self.molecule.geometry
         Za,Zb = self.molecule.charges
         R = abs(config[1]-config[0])
 
         not_print = None in print_options or "nothing" in print_options
 
         # Compute molecular integrals (S,T,V --> H)
-        S,T,V = self.molecular_integrals(m,NG,config,z,Za,Zb)
+        S,T,V = self.molecular_integrals()
         H = T+V
 
-        # Compute bielectronic integrals        #################3# hacerlo self y tuilizar self.m self.NG ??
-        # bielectronic = self.bielectronic_integrals()
-        bielectronic = bielectronic_matrix(m,NG,config,z)
+        # Compute bielectronic integrals        
+        bielectronic = self.bielectronic_integrals()
 
 
         # Compute transformation matrix X from S so that XSX=1
@@ -135,6 +133,7 @@ class RHF():
 
         # Guess density matrix (at zero)
         if P0 is None: P0 = np.zeros(shape=(m,m))
+
 
         # Printing Initial information Section
         if not not_print:
@@ -188,7 +187,7 @@ class RHF():
 
                 print_converged(n_iterations,Eelec,Vnn,E,e,C,mulliken)
 
-                break
+                return Vnn,Eelec,E
 
             if n_iterations >= max_iter:
                 print_title("Ending SCF loop. NOT CONVERGED! :(")
@@ -196,20 +195,10 @@ class RHF():
 
             P0 = Pt.copy()  # Updating Density Matrix
         
-        pass
 
-    def molecular_integrals(self,m,NG,config,z,Za,Zb):
+    def molecular_integrals(self):
         """
         Computes matrices made from the molecular integrals.
-
-        Parameters
-        ----------
-        `m` : Number of basis functions used.
-        `NG` : Number of primitive gaussians in each basis.
-        `config` : Configuration array. [Ra,Rb] for diatomic molecules
-        `z` : Effective charges array.
-        `Za` : Nuclear charge of atom A.
-        `Zb` : Nuclear charge of atom B
 
         Returns 
         ----------
@@ -218,6 +207,11 @@ class RHF():
         `V` : m x m array. Electron-nucleus potential integral matrix.
 
         """
+        m = self.m                          # Number of basis functions
+        NG = self.NG                        # Number of primitive gaussians
+        config = self.molecule.geometry     # Geometry array
+        z = self.molecule.effective_charges # Effective charges array
+        Za,Zb = self.molecule.charges       # Nuclear charges
 
         S = molecular_matrix(m,NG,config,z,_S)
         T = molecular_matrix(m,NG,config,z,_T)
@@ -225,6 +219,23 @@ class RHF():
 
         return S,T,V
 
+    def bielectronic_integrals(self):
+        """
+        Computes tensor made from the bielectronic (ij|kl) integrals.
+
+        Returns
+        -------
+        `bielectronic` : m x m x m x m array. Bielectronic integrals tensor.
+        """
+
+        m = self.m                          # Number of basis functions
+        NG = self.NG                        # Number of primitive gaussians
+        config = self.molecule.geometry     # Geometry array
+        z = self.molecule.effective_charges # Effective charges array
+
+        bielectronic = bielectronic_matrix(m,NG,config,z)
+
+        return bielectronic
 
 
 #################### Initial Matrices (molecular, bielectronic) ##############
@@ -358,17 +369,16 @@ def _ijkl(a,b,c,d,Ra,Rb,Rc,Rd):
 
 ######################### SCF Functions #############################
 
-
 def G_matrix(P,bielectronic):
     """
     Computes bielectornic matrix.
 
-    Parameters: 
+    Parameters
     ------------
     `P` : m x m density matrix.
     `bielectornic`: bielectronic integrals tensor.
 
-    Returns: 
+    Returns
     ------------
     `G` : m x m bielectronic matrix.
     """
@@ -386,9 +396,15 @@ def G_matrix(P,bielectronic):
 
 def P_matrix(N,C):
     """
-    Computes Density matrix for the given coeffitients matrix.\n
-    Parameters: `C` : m x m coefitients matrix.\n
-    Returns: `P` : m x m density matrix.
+    Computes Density matrix for the given coeffitients matrix.
+
+    Parameters
+    -----------
+     `C` : m x m coefitients matrix.
+
+    Returns
+    -----------
+    `P` : m x m density matrix.
     """
     m = len(C)
     P = np.zeros(shape=(m,m))
@@ -403,9 +419,16 @@ def P_matrix(N,C):
 def converged(P0,Pt,eps):
     """
     Determines if a SCF step is converged with a certain tolerance (eps).
+
+    Parameters
+    -----------
     `P0` : Old Density matrix. (m x m array)
     `Pt` : New Density matrix. (m x m array)
     `eps`: Tolerance value.
+
+    Returns
+    ----------
+    `bool` : True or False whether it is converged or not.
     """
     m = len(Pt)
     diff = np.sqrt(np.sum((Pt-P0)**2)/m**2)
@@ -415,6 +438,12 @@ def converged(P0,Pt,eps):
 
 
 ##################### PRINTING FUNCTIONS ######################
+
+def print_title(text,before=15,after=15,separator="-",head=2,tail=1):
+    """Prints text in a title-style."""
+    separator = str(separator)
+    print("\n"*head,separator*before,text,separator*after,"\n"*tail)
+
 def print_molecular_matrices(S,T,V,H):
     """Prints molecular matrices S,T,V and H."""
     print("\nOverlap Matrix (S):\n",S)
@@ -472,19 +501,19 @@ def print_converged(n_iterations,Eelec,Vnn,E,e,C,mulliken):
 if __name__ == "__main__":
 
     # Input parameters
-    NG = 3              # Number of primitive gaussian functions per basis
-    R = 1.4             # Distance between atoms
-    N = 2               # Number of Basis functions
-    Ra = 0              # Position of Atom(A)
-    Rb = Ra+R           # Position of Atom(B)
-    Za,Zb = 1,1         # Atomic charges of each nucleus
-    za,zb = 1.24,1.24 # Effective nuclear charge of each atom 
-    config = np.array([Ra,Rb])  # Positions Array
-    print("\nInput parameters:")
-    print(f"{R = }  {NG = }")
+    # NG = 3              # Number of primitive gaussian functions per basis
+    # R = 1.4             # Distance between atoms
+    # N = 2               # Number of Basis functions
+    # Ra = 0              # Position of Atom(A)
+    # Rb = Ra+R           # Position of Atom(B)
+    # Za,Zb = 1,1         # Atomic charges of each nucleus
+    # za,zb = 1.24,1.24 # Effective nuclear charge of each atom 
+    # config = np.array([Ra,Rb])  # Positions Array
+    # print("\nInput parameters:")
+    # print(f"{R = }  {NG = }")
 
 
-
+    N = 2
     H2 = Molecule(
         geometry=[0,1.4],
         charges=[1,1],
@@ -499,7 +528,7 @@ if __name__ == "__main__":
         N_electrons = N
     )
 
-    scf = RHF(H2,NG=3)
+    scf = RHF(HeH,NG=3)
     scf.SCF(print_options=["all"])
 
 
