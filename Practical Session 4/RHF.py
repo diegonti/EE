@@ -6,14 +6,12 @@ Diego Ontiveros
 """
 
 import numpy as np
-import sympy as sm
 from scipy.special import erf
 
 ##################### EXTERNAL CONSTANTS, SYMBOLS AND FUNCTIONS #################
 
 # Constants and Symbols
 pi = np.pi
-W = sm.symbols("W")
 
 # Fit parameters for the STO-NG (d,alpha)
 coef = {
@@ -39,7 +37,7 @@ def NG_parser(NG):
         d,a = coef[f"{NG}g"]
     else: 
         raise SyntaxError("Insert a valid number of gaussians. Eg, ""2g"" or 2")
-    return NG,d,a
+    return NG,np.array(d),np.array(a)
 
 def Fo(t): 
     """Auxiliary function"""
@@ -96,10 +94,8 @@ class RHF():
         self.N = molecule.N_electrons
 
 
-        pass
 
-
-    def SCF(self,P0:np.ndarray=None,eps:float=1e-4,max_iter:int=100):
+    def SCF(self,P0:np.ndarray=None,eps:float=1e-4,max_iter:int=100,print_options:list[str]="all"):
         """
         Employs SCF method to obtain the orbital energies and coefitients. 
 
@@ -108,6 +104,14 @@ class RHF():
         `P0` : Optional. m x m Initial guess density matrix. By default zero.
         `eps` : Optional. Tolerance for the SCF convergence. By default 1e-4.
         `max_iter` : Optional. Maximum number of iterations for the SCF loop. By default 100.
+        `print_options` : List with the results to print.
+                "molecular" --> Prints molecular integrals.\n
+                "bielectronic" --> Prints bielectronic integrals.\n
+                "transformation" --> Prints transformation matrix.\n
+                "guess gensity" --> Prints the initial guess density.\n
+                "iteration" --> Prints information of each SCF iteration.\n
+                "all" --> Prints everything. \n
+                None or "Nothing" --> Prints only final results.
         """
 
         config = self.molecule.geometry
@@ -119,11 +123,23 @@ class RHF():
         ############# compute initial integrals in other function !
 
         # Compute molecular integrals (S,T,V --> H)
-        S = molecular_matrix(m,NG,config,_S)
-        T = molecular_matrix(m,NG,config,_T)
-        V = molecular_matrix(m,NG,config,_V,Za,Zb,config)
-
+        S,T,V = self.molecular_integrals(m,NG,config,Za,Zb)
         H = T+V
+
+        # Compute bielectronic integrals
+        # bielectronic = self.bielectronic_integrals()
+        bielectronic = bielectronic_matrix(m,NG,config)
+                            #################3# hacerlo self ??
+
+        # Compute transformation matrix X from S so that XSX=1
+        Seval,U = np.linalg.eigh(S)
+        S12 = np.diag(Seval**-0.5)
+        X = U@S12     #U@S12@U.T also works  
+
+        # Guess density matrix (at zero)
+        if P0 is None:
+            P0 = np.zeros(shape=(m,m))
+
 
         # Print initial integrals           ################ +FUNCTION
         print("\nOverlap Matrix (S):\n",S)
@@ -131,20 +147,9 @@ class RHF():
         print("\nPotential Matrix (V):\n",V)
         print("\nHamiltonian Matrix (H):\n",H)
 
-
-        # Compute bielectronic integrals
-        bielectronic = bielectronic_matrix(m,NG,config)
-        # bielectronic = [0.7746,0.5697,0.4441,0.2970]
+                ################### +Print bielectronic function
         print("\nBielectronic Tensor (ij|kl):\n",bielectronic)
 
-
-        ###################Print bielectronic function
-
-
-        # Compute transformation matrix X from S so that XSX=1
-        Seval,U = np.linalg.eigh(S)
-        S12 = np.diag(Seval**-0.5)
-        X = U@S12     #U@S12@U.T.conj() also works  
 
         print("\nSquareroot inverse of S\n",S12)
         print("\nUnitary Matrix U\n",U)
@@ -152,9 +157,6 @@ class RHF():
         print("\nMatrix product XSX = 1\n",X.T@S@X)
 
 
-        # Guess density matrix (at zero)
-        if P0 is None:
-            P0 = np.zeros(shape=(m,m))
         print("\nGuess P0\n",P0)
 
 
@@ -167,15 +169,16 @@ class RHF():
             print_title(f"SCF Iternation: {n_iterations}",head=1,tail=0,before=10,after=0)
 
             # SCF step
-            G = G_matrix(P0.copy(),bielectronic)    # Bielectronic Matrix
-            F = H + G                               # Fock Matrix
-            Ft =  X.T.conj()@F@X                    # Tranformed Fock Matrix
-            e,Ct = np.linalg.eigh(Ft)               # Orbital Energies and transformed coefs
-            C = X@Ct                                # Orbital Coeffitients
-            Pt = P_matrix(m,N,C)                    # Denisty Matrix
-            Eelec = 0.5*np.sum(Pt*(H+F))            # Electronic Energy E0
+            G = G_matrix(P0,bielectronic)    # Bielectronic Matrix
+            F = H + G                        # Fock Matrix
+            Ft =  X.T.conj()@F@X             # Tranformed Fock Matrix
+            e,Ct = np.linalg.eigh(Ft)        # Orbital Energies and transformed coefs
+            C = X@Ct                         # Orbital Coeffitients
+            Pt = P_matrix(N,C)               # Denisty Matrix
+            Eelec = 0.5*np.sum(Pt*(H+F))     # Electronic Energy E0
 
             # Printing current iteration results
+            # print_current_iteration()
             print("\nBielectronic Matrix G:\n",G)
             print("\nFock Matrix F:\n",F)
             print("\nTransformed Fock Matrix Ft\n",Ft)
@@ -197,10 +200,11 @@ class RHF():
                 mulliken = Pt@S         # Mulliken Population Matrix
 
                 # Printing converged results
+                # print_converged()
                 print("\nNumber of SCF iterations:",n_iterations)
                 print("\nElectronic Energy: Eelec =",Eelec)
                 print("Nuclear Repulsion:   Vnn = ",Vnn)
-                print("Total Energy:          E = ",Eelec+Vnn)
+                print("Total Energy:          E = ",E)
 
                 print("\nOrbital Energies e:\n",e)
                 print("\nOrbital Coeffitients C:\n",C)
@@ -216,13 +220,36 @@ class RHF():
         
         pass
 
-    def molecular_matrices():
-        # Computes S, T, V Matrices
-        pass
+    def molecular_integrals(self,m,NG,config,Za,Zb):
+        """
+        Computes matrices made from the molecular integrals.
+
+        Parameters
+        ----------
+        `m` : Number of basis functions used.
+        `NG` : Number of primitive gaussians in each basis.
+        `config` : Configuration array. [Ra,Rb] for diatomic molecules
+        `Za` : Nuclear charge of atom A.
+        `Zb` : Nuclear charge of atom B
+
+        Returns 
+        ----------
+        `S` : m x m array. Overlap integral matrix.
+        `T` : m x m array. Kinetic integral matrix.
+        `V` : m x m array. Electron-nucleus potential integral matrix.
+
+        """
+
+        S = molecular_matrix(m,NG,config,_S)
+        T = molecular_matrix(m,NG,config,_T)
+        V = molecular_matrix(m,NG,config,_V,Za,Zb,config)
+
+        return S,T,V
 
 
 
-# Matrix elements
+#################### Initial Matrices (molecular, bielectronic) ##############
+
 def molecular_matrix(N,NG,R,f,*params):
     """
     Constructs the full molecular matrix for a given contribution function (f).
@@ -241,7 +268,7 @@ def molecular_matrix(N,NG,R,f,*params):
     """
     
     NG,d,a = NG_parser(NG)          # Get NG and coefitients
-    a = np.array(a) * 1.24**2       # Correcting alphas by the exponent         ##################### OJO
+    a = np.array([a*za**2,a*zb**2]) # Correct exponents by effective charge
 
     # Loop for all basis functions (N) and primitives (NG)
     M = np.zeros(shape=(N,N))
@@ -249,14 +276,17 @@ def molecular_matrix(N,NG,R,f,*params):
         for j in range(N):
 
             # Current gaussian center 
-            Ra = R[i]
-            Rb = R[j]
+            Ra,Rb = R[i],R[j]
                             
             for p in range(NG):
                 for q in range(NG):
 
+                    # Current GTO exponent
+                    alpha,beta = a[i,p], a[j,q]
+
                     # Updating each matrix coeffitient with STO-NG formula
-                    M[i,j] += d[p]*d[q]*f(a[p],a[q],Ra,Rb, *params)
+                    M[i,j] += d[p]*d[q]*f(alpha,beta,Ra,Rb, *params)
+
     return M
 
 def bielectronic_matrix(N,NG,R):
@@ -275,9 +305,10 @@ def bielectronic_matrix(N,NG,R):
     """
     M = np.zeros(shape=(N,N,N,N))
 
-    NG,d,a = NG_parser(NG)          # Get NG and coefitients
-    a = np.array(a) * 1.24**2       # Correcting alphas by the exponent
+    NG,d,a = NG_parser(NG)              # Get NG and coefitients
+    a = np.array([a*za**2,a*zb**2])     # Correct exponents by effective charge
 
+    # For each gaussian center (atom)
     for i in range(N):
         for j in range(N):
             for k in range(N):
@@ -287,14 +318,19 @@ def bielectronic_matrix(N,NG,R):
                     Ra,Rb = R[i],R[j]
                     Rc,Rd = R[k],R[l]
 
+                    # For each primitive gaussian
                     for p in range(NG):
                         for q in range(NG):
                             for r in range(NG):
                                 for s in range(NG):
 
+                                    # Current GTO parameters (d and alpha exponents)
                                     d_coefs = d[p]*d[q]*d[r]*d[s]
+                                    alpha,beta = a[i,p], a[j,q]
+                                    gamma,delta = a[k,r], a[l,s]
 
-                                    M[i,j,k,l] += d_coefs*_ijkl(a[p],a[q],a[r],a[s], Ra,Rb,Rc,Rd)
+                                    # Updating each matrix coeffitient with STO-NG formula
+                                    M[i,j,k,l] += d_coefs*_ijkl(alpha,beta,gamma,delta, Ra,Rb,Rc,Rd)
 
 
     return M
@@ -327,7 +363,7 @@ def _V(a,b,Ra,Rb,Za,Zb,R):
     return _Vp(a,b,Ra,Rb,Za,R[0]) + _Vp(a,b,Ra,Rb,Zb,R[1])
 
 
-def _ijkl(a,b,c,d,Ra,Rb,Rc,Rd):     ####################### OJO
+def _ijkl(a,b,c,d,Ra,Rb,Rc,Rd):
     """Bi-electronic Integral """
     Rp = (a*Ra + b*Rb)/(a+b)
     Rq = (c*Rc + d*Rd)/(c+d)
@@ -339,12 +375,14 @@ def _ijkl(a,b,c,d,Ra,Rb,Rc,Rd):     ####################### OJO
     return 2*pi**(5/2)*norms/coefs*np.exp(exponents)*Fo(t)
 
 
+
 ######################### SCF Functions #############################
 
 
 def G_matrix(P,bielectronic):
     """
-    Computes bielectornic matrix.\n
+    Computes bielectornic matrix.
+
     Parameters: 
     ------------
     `P` : m x m density matrix.
@@ -362,26 +400,17 @@ def G_matrix(P,bielectronic):
             for l in range(m):
                 for s in range(m):
  
-                    # Getting ijkl and index of the integral it corresponds
-                    # munusl = f"{mu+1}{nu+1}{s+1}{l+1}"
-                    # mulsnu = f"{mu+1}{l+1}{s+1}{nu+1}"
-                    # i1 = bie_index(munusl)    
-                    # i2 = bie_index(mulsnu)
-
-
-                    # G[mu,nu] += P[l,s]*(bielectronic[i1] - 0.5*bielectronic[i2])
-                   
-
                     G[mu,nu] += P[l,s]*(bielectronic[mu,nu,s,l] - 0.5*bielectronic[mu,l,s,nu])
 
     return G
 
-def P_matrix(m,N,C):
+def P_matrix(N,C):
     """
     Computes Density matrix for the given coeffitients matrix.\n
     Parameters: `C` : m x m coefitients matrix.\n
     Returns: `P` : m x m density matrix.
     """
+    m = len(C)
     P = np.zeros(shape=(m,m))
     for l in range(m):
         for s in range(m):
@@ -406,44 +435,33 @@ def converged(P0,Pt,eps):
 
 
 
-# def bie_index(ijkl:str):
-#     """Takes string of the "ijkl" indices of the bielectronic integral and returns
-#     the index of the bielectronic parametrized array of integrals it corresponds."""
-#     i,j,k,l =[int(t) for t in ijkl]
-#     sij = i+j if i!=j else i
-#     skl = k+l if k!=l else k
-#     sijkl = [sij,skl]
-#     if len(set(ijkl)) <= 1: return 0            # (ii|ii) cases
-#     elif sorted(sijkl) == [1,2]: return 1       # (ii|jj) cases
-#     elif sorted(sijkl) == [1,3]: return 2       # (ii|ij) cases
-#     elif sorted(sijkl) == [2,3]: return 2       # (jj|ij) cases
-#     elif sorted(sijkl) == [3,3]: return 3       # (ij|ij) cases
-#     else: raise ValueError("Bielectronic indices nor valid.")
+################### TEST PROGRAM #################
 
+if __name__ == "__main__":
 
-# Input parameters
-NG = 3          # Number of primitive gaussian functions per basis
-R = 1.4      # Distance between atoms
-N = 2           # Number of Basis functions
-Ra = 0          # Position of H(A)
-Rb = Ra+R       # Position of H(B)
-Za,Zb = 1,1     # Atomic charges of each nucleus
-za,zb = 1.24,1.24
-config = np.array([Ra,Rb])  # Positions Array
-print("\nInput parameters:")
-print(f"{R = }  {NG = }")
+    # Input parameters
+    NG = 3              # Number of primitive gaussian functions per basis
+    R = 1.4632          # Distance between atoms
+    N = 2               # Number of Basis functions
+    Ra = 0              # Position of Atom(A)
+    Rb = Ra+R           # Position of Atom(B)
+    Za,Zb = 2,1         # Atomic charges of each nucleus
+    za,zb = 2.0926,1.24 # Effective nuclear charge of each atom 
+    config = np.array([Ra,Rb])  # Positions Array
+    print("\nInput parameters:")
+    print(f"{R = }  {NG = }")
 
 
 
-H2 = Molecule(
-    geometry=[Ra,Rb],
-    charges=[Za,Zb],
-    effective_charges=[za,zb],
-    N_electrons = N
-    )
+    H2 = Molecule(
+        geometry=[Ra,Rb],
+        charges=[Za,Zb],
+        effective_charges=[za,zb],
+        N_electrons = N
+        )
 
-scf = RHF(H2,NG=3)
-scf.SCF()
+    scf = RHF(H2,NG=3)
+    scf.SCF()
 
 
 
