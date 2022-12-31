@@ -11,6 +11,8 @@ Diego Ontiveros
 # Imported from the module RHF created, 
 # which contains all the functions and classes needed.
 from RHF import Molecule, RHF
+from time import time
+to = time()
 
 
 # INPUT PARAMETERS
@@ -38,3 +40,6 @@ HeH = Molecule(
 # SCF PROCEIDURE. Change HeH to H2 to calculate the H2 molecule.
 scf = RHF(HeH,NG=3)
 scf.SCF(print_options=["all"])
+
+tf = time()
+print(f"\nProcess finished in {tf-to:.4f}s\n")
