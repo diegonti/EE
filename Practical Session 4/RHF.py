@@ -47,7 +47,7 @@ def Fo(t):
 
 #############################  MAIN CLASES  #################################
 
-class Molecule():
+class Molecule():               ######### +atom label implementation with dict charges?
     def __init__(self,
         geometry:np.ndarray,
         charges:np.ndarray,
@@ -69,10 +69,6 @@ class Molecule():
         self.effective_charges = effective_charges
         self.Natoms = len(charges)
         self.N_electrons = N_electrons
-
-    def get_parameters(self):
-        # Devuelve alphas normas y tal. Sirve?
-        pass
 
        
 class RHF():
@@ -147,9 +143,7 @@ class RHF():
                 print_molecular_matrices(S,T,V,H)
                                     
             if "all" in print_options or "bielectronic" in print_options:
-                                                        ################### +Print bielectronic function
-                print("\nBielectronic Tensor (ij|kl):\n",bielectronic)
-                # print_bielectronic_tensor(bielectronic)
+                print_bielectronic_tensor(bielectronic)
 
             if "all" in print_options or "transformation" in print_options:
                 print_transformation_matrix(S12,U,X,S)
@@ -430,6 +424,17 @@ def print_molecular_matrices(S,T,V,H):
 
 def print_bielectronic_tensor(tensor):
     """Prints bielectronic tensor in a legible way."""
+    m = len(tensor)
+    u = 2
+    print("\nBielectronic Tensor (ij|kl):")
+    print(" I  J  K  L     (ij|kl)")
+    print_title("-",before=10,after=15,head=0,tail=0)
+    for i in range(m):
+        for j in range(m):
+            for k in range(m):
+                for l in range(m):
+
+                    print(f" {i+1}  {j+1}  {k+1}  {l+1}   {tensor[i,j,k,l]}")
     pass
 
 def print_transformation_matrix(S12,U,X,S):
@@ -468,7 +473,7 @@ if __name__ == "__main__":
 
     # Input parameters
     NG = 3              # Number of primitive gaussian functions per basis
-    R = 1.4          # Distance between atoms
+    R = 1.4             # Distance between atoms
     N = 2               # Number of Basis functions
     Ra = 0              # Position of Atom(A)
     Rb = Ra+R           # Position of Atom(B)
@@ -494,7 +499,7 @@ if __name__ == "__main__":
         N_electrons = N
     )
 
-    scf = RHF(HeH,NG=3)
+    scf = RHF(H2,NG=3)
     scf.SCF(print_options=["all"])
 
 
