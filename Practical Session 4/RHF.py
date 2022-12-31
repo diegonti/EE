@@ -194,6 +194,10 @@ class RHF():
                 break
 
             P0 = Pt.copy()  # Updating Density Matrix
+
+    def PES(self,R_array):
+        ####################### IMPLEMENT PES CALCULATION
+        pass
         
 
     def molecular_integrals(self):
@@ -494,42 +498,4 @@ def print_converged(n_iterations,Eelec,Vnn,E,e,C,mulliken):
     print("\nOrbital Coeffitients C:\n",C)
     print("\nMulliken Population Matrix:\n",mulliken)   
     print() 
-
-
-################### TEST PROGRAM #################
-
-if __name__ == "__main__":
-
-    # Input parameters
-    # NG = 3              # Number of primitive gaussian functions per basis
-    # R = 1.4             # Distance between atoms
-    # N = 2               # Number of Basis functions
-    # Ra = 0              # Position of Atom(A)
-    # Rb = Ra+R           # Position of Atom(B)
-    # Za,Zb = 1,1         # Atomic charges of each nucleus
-    # za,zb = 1.24,1.24 # Effective nuclear charge of each atom 
-    # config = np.array([Ra,Rb])  # Positions Array
-    # print("\nInput parameters:")
-    # print(f"{R = }  {NG = }")
-
-
-    N = 2
-    H2 = Molecule(
-        geometry=[0,1.4],
-        charges=[1,1],
-        effective_charges=[1.24,1.24],
-        N_electrons = N
-        )
-
-    HeH = Molecule(
-        geometry=[0, 1.4632],
-        charges=[2,1],
-        effective_charges=[2.0926,1.24],
-        N_electrons = N
-    )
-
-    scf = RHF(HeH,NG=3)
-    scf.SCF(print_options=["all"])
-
-
 
