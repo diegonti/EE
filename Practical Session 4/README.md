@@ -4,7 +4,9 @@ In this folder are found the problems for Practical Session 4, their corresponde
 
 `RHF.py` : Module that contains the Moleucle and RHF class and all the functions needed for the SCF, integrals, calculations, ...
 
-`p1.py` : Problem 1. General RHF for diatomic molecules. Generates PES.
+`PES.py` : Problem 1. Generates PES of the ground state for $H_2$ and $HeH^+$ and searches for the minimum configuration.
+
+`SinglePoint.py` : Calculates SCF for a fixed configuration.
 
 
 
