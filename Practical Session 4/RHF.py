@@ -108,6 +108,13 @@ class RHF():
                 "iterations" --> Prints information of each SCF iteration.\n
                 "all" --> Prints everything. \n
                 None or "nothing" --> Prints only final results and steps.
+
+        Returns
+        ---------
+        `Vnn` : Nuclear repulsion energy.
+        `Eelec` : Electronic energy.
+        `E` : Total energy. Eelec + Vnn.
+        Only returns if the SCF converges.
         """
         m = self.m
         NG = self.NG
@@ -195,9 +202,32 @@ class RHF():
 
             P0 = Pt.copy()  # Updating Density Matrix
 
-    def PES(self,R_array):
+    def PES(self,R_array:np.ndarray=None):
+        """
+        Returns the PES of the fundamental state calculated at the R_array positions.
+
+        Parameters
+        ----------
+        `R_array` : Optional. Internuclear distances array. By default makes an array
+            from 1 unit before the current distance to 5 after.
+
+        Returns
+        -------
+        `energies` : PES for the fundamental state.
+        `R_array` : Array of distances used.
+        """
+        if R_array is None:
+            R = abs(self.molecule.geometry[1] - self.molecule.geometry[0])
+            R_array = np.linspace(R-1,R+5,100)
+
+        energies = np.zeros(len(R_array))
+        for i,Ri in enumerate(R_array):
+            self.molecule.geometry = np.array([0,Ri])
+            Vnn,Eelec,E = self.SCF(print_options=["nothing"])
+            energies[i] = E
+    
         ####################### IMPLEMENT PES CALCULATION
-        pass
+        return energies,R_array
         
 
     def molecular_integrals(self):

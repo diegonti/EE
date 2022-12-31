@@ -1,15 +1,17 @@
 """
 Practice Session 4 - Problem 1
 General RHF SCF program for two-electron diatomic molecules.
-Generates a plot of the PES.
+Performes a single point calculation for a fixed geometry.
 Here is used for the examples of H2 and HeH+.
 
 Diego Ontiveros
 """
 
+
 # Imported from the module RHF created, 
 # which contains all the functions and classes needed.
 from RHF import Molecule, RHF
+
 
 # INPUT PARAMETERS
 N = 2
@@ -33,8 +35,6 @@ HeH = Molecule(
     N_electrons = N
 )
 
-# SCF PROCEIDURE
-scf = RHF(H2,NG=3)
+# SCF PROCEIDURE. Change HeH to H2 to calculate the H2 molecule.
+scf = RHF(HeH,NG=3)
 scf.SCF(print_options=["all"])
-
-########## PES Calculation
