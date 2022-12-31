@@ -226,7 +226,9 @@ class RHF():
             Vnn,Eelec,E = self.SCF(print_options=["nothing"])
             energies[i] = E
     
-        ####################### IMPLEMENT PES CALCULATION
+        ####################### IMPLEMENT MINIMUM FINDING
+        ####################### Change to "nothing" == "nothin"
+                                # and print options in PES
         return energies,R_array
         
 
