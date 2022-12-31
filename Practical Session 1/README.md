@@ -7,4 +7,4 @@ their correspondent images generated, and the report of the practice.
 
 `p2.py`: Problem 2. Finding optimized paramaters and energy for STO-1G.
 
-`p3.py`: Problem 3. Characterizing $\chi_{1s}$ ($H$ and $He^+$) wavefunctions expressed with STO, STO-1G, STO-2G and STO-3G.
+`p3.py`: Problem 3. Characterizing $\chi_{1s}$ ( $H$ and $He^+$) wavefunctions expressed with STO, STO-1G, STO-2G and STO-3G.
