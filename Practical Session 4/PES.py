@@ -28,24 +28,32 @@ H2 = Molecule(
     geometry=[0,RHH],
     charges=[ZH,ZH],
     effective_charges=[zH,zH],
-    N_electrons = N
+    N_electrons = N,
+    molecule_label="H2"
     )
 
 HeH = Molecule(
     geometry=[0, RHHe],
     charges=[ZHe,ZH],
     effective_charges=[zHe,zH],
-    N_electrons = N
+    N_electrons = N,
+    molecule_label="HeH+"
 )
 
 # SCF PES PROCEIDURE for H2
 scf = RHF(H2,NG=3)
-PES_H2, r = scf.PES(R_array)
+PES_H2, r, Emin_H2, Re_H2 = scf.PES(R_array,file_name="PES_H2.log")
 
-# SCF PES PROCEIDURE for HeH
+
+# SCF PES PROCEIDURE for HeH+
 scf = RHF(HeH,NG=3)
-PES_HeH, r = scf.PES(R_array)
+PES_HeH, r, Emin_HeH,Re_HeH = scf.PES(R_array,file_name="PES_HeH.log")
 
+
+print("H2 minimum Energy: ", Emin_H2)
+print("H2 optimized distance: ", Re_H2)
+print("HeH+ minimum Energy: ", Emin_HeH)
+print("HeH+ optimized distance: ", Re_HeH)
 
 # Plotting PES
 fig,(ax1,ax2) = plt.subplots(1,2, figsize=(9,5))
@@ -58,7 +66,6 @@ ax1.set_xlabel("R (a.u.)"); ax2.set_xlabel("R (a.u.)")
 ax1.set_ylabel("E (a.u.)"); ax2.set_ylabel("E (a.u.)")
 
 fig.tight_layout()
-
 fig.savefig("PES.jpg",dpi=600)
 
 tf = time()

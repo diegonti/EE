@@ -12,6 +12,7 @@ Diego Ontiveros
 # which contains all the functions and classes needed.
 from RHF import Molecule, RHF
 from time import time
+import os
 to = time()
 
 
@@ -21,6 +22,11 @@ RHHe = 1.4632
 RHH = 1.4
 ZH,ZHe = 1,2
 zH,zHe = 1.24,2.0926
+file_name = "SP.log"
+
+# To overwrite file
+try: os.remove("SP.log")
+except FileNotFoundError: pass
 
 # GENERATING MOLECULES 
 H2 = Molecule(
@@ -39,7 +45,7 @@ HeH = Molecule(
 
 # SCF PROCEIDURE. Change HeH to H2 to calculate the H2 molecule.
 scf = RHF(HeH,NG=3)
-scf.SCF(print_options=["all"])
+scf.SCF(print_options=["all"],file_name=file_name)
 
 tf = time()
 print(f"\nProcess finished in {tf-to:.4f}s\n")

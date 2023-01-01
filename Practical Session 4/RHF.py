@@ -6,6 +6,7 @@ And the RHF class, which reads a Molecule object and performs RHF calculations u
 Diego Ontiveros
 """
 
+import sys, os
 import numpy as np
 from scipy.special import erf
 
@@ -43,12 +44,13 @@ def Fo(t):
 
 #############################  MAIN CLASES  #################################
 
-class Molecule():               ######### +atom label implementation with dict charges?
+class Molecule():               
     def __init__(self,
         geometry:np.ndarray,
         charges:np.ndarray,
         effective_charges:np.ndarray,
-        N_electrons: int):
+        N_electrons: int,
+        molecule_label:str=None):
         """
         Creates a Molecule object of the molecule that will be used for the RHF calculations.
 
@@ -65,7 +67,9 @@ class Molecule():               ######### +atom label implementation with dict c
         self.effective_charges = effective_charges
         self.Natoms = len(charges)
         self.N_electrons = N_electrons
-        #self.labels
+        self.molecule_label = molecule_label
+        #self.labels +atom label implementation with dict charges?
+        
 
        
 class RHF():
@@ -91,15 +95,18 @@ class RHF():
         P0:np.ndarray=None,
         eps:float=1e-4,
         max_iter:int=100,
+        file_name:str = "out.log",
         print_options:list=["all"]):
         """
-        Employs SCF method to obtain the orbital energies and coefitients. 
+        Employs SCF method to obtain the orbital energies and coefitients.
+        Writes output in the specified file. 
 
         Parameters
         ----------
         `P0` : Optional. m x m Initial guess density matrix. By default zero.
         `eps` : Optional. Tolerance for the SCF convergence. By default 1e-4.
         `max_iter` : Optional. Maximum number of iterations for the SCF loop. By default 100.
+        `file_name`: Output file name.
         `print_options` : Optional. List with the results to print. Defaults to "all"
                 "molecular" --> Prints molecular integrals.\n
                 "bielectronic" --> Prints bielectronic integrals.\n
@@ -159,9 +166,20 @@ class RHF():
 
             # Could use an implementation of the match/case from Python 3.10, but brings less compatibility.
 
+        # Writing to output file
+        original_stdout = sys.stdout
+        outFile = open(file_name,"a")
+        sys.stdout = outFile
+        print_title("Initial Molecule Information")
+        print_molecular_matrices(S,T,V,H)
+        print_bielectronic_tensor(bielectronic)
+        print_transformation_matrix(S12,U,X,S)
+        print("\nGuess P0\n",P0)  
+        print_title("Entering SCF loop")
+        sys.stdout = original_stdout
 
         # SCF LOOP
-        print_title("Entering SCF loop")
+        if not not_print: print_title("Entering SCF loop")
         n_iterations = 0
         while True:
 
@@ -176,15 +194,19 @@ class RHF():
             Pt = P_matrix(N,C)               # Denisty Matrix
             Eelec = 0.5*np.sum(Pt*(H+F))     # Electronic Energy E0
 
-            # Printing current iteration results
+            # Printing and writing current iteration results
             if not not_print:
                 if "all" in print_options or "iterations" in print_options:
                     print_title(f"SCF Iternation: {n_iterations}",head=1,tail=0,before=10,after=0)
                     print_current_iteration(G,F,Ft,e,C,Pt,Eelec)
+            
+            sys.stdout = outFile
+            print_title(f"SCF Iternation: {n_iterations}",head=1,tail=0,before=10,after=0)
+            print_current_iteration(G,F,Ft,e,C,Pt,Eelec)
+            sys.stdout = original_stdout
 
             # Convergence
             if converged(P0,Pt,eps):
-                print_title("Ending SCF loop. CONVERGED!")
 
                 # Energy contributions
                 Vnn = Za*Zb/R           # Nuclear Repulsion
@@ -192,44 +214,78 @@ class RHF():
                 E = Eelec + Vnn         # Total Energy
                 mulliken = Pt@S         # Mulliken Population Matrix
 
+                # Printing and writing converged results
+                if not not_print:
+                    print_title("Ending SCF loop. CONVERGED!")
+                    print_converged(n_iterations,Eelec,Vnn,E,e,C,mulliken)
+                
+                sys.stdout = outFile
+                print_title("Ending SCF loop. CONVERGED!")
                 print_converged(n_iterations,Eelec,Vnn,E,e,C,mulliken)
+                sys.stdout = original_stdout
+                outFile.close()
 
                 return Vnn,Eelec,E
 
             if n_iterations >= max_iter:
                 print_title("Ending SCF loop. NOT CONVERGED! :(")
+
+                sys.stdout = outFile
+                print_title("Ending SCF loop. NOT CONVERGED! :(")
+                sys.stdout = original_stdout
+                outFile.close()
                 break
 
             P0 = Pt.copy()  # Updating Density Matrix
+        sys.stdout = original_stdout
 
-    def PES(self,R_array:np.ndarray=None):
+    def PES(self,R_array:np.ndarray=None,file_name="PES.log"):
         """
         Returns the PES of the fundamental state calculated at the R_array positions.
+        Calculates also the equilibrium configuration.
+        Writes results in the specified file.
 
         Parameters
         ----------
         `R_array` : Optional. Internuclear distances array. By default makes an array
             from 1 unit before the current distance to 5 after.
+        `file_name`: Output file name.
 
         Returns
         -------
         `energies` : PES for the fundamental state.
         `R_array` : Array of distances used.
+        `minE` : Minimum Energy found.
+        `minR` : Equilibrium distance found.
         """
+        try: os.remove(file_name)
+        except FileNotFoundError: pass
+
         if R_array is None:
             R = abs(self.molecule.geometry[1] - self.molecule.geometry[0])
             R_array = np.linspace(R-1,R+5,100)
+        if self.molecule.molecule_label is None: molecule_label = "1"
+        else: molecule_label = self.molecule.molecule_label
 
+        print_title(f"Starting PES Calculation for {molecule_label}")
+        # Calculating PES for the R_array
         energies = np.zeros(len(R_array))
         for i,Ri in enumerate(R_array):
+            with open(file_name,"a") as outFile:
+                outFile.write(f"\n\n---------------- R = {Ri}\n\n")
             self.molecule.geometry = np.array([0,Ri])
-            Vnn,Eelec,E = self.SCF(print_options=["nothing"])
+            Vnn,Eelec,E = self.SCF(file_name=file_name, print_options=["nothing"])
             energies[i] = E
+        
+        # Searching minimum.
+        minE = np.min(energies)
+        minEi = np.argmin(energies)
+        minR = R_array[minEi]
+
+        print_title("PES Calculation ended",head=1)
     
-        ####################### IMPLEMENT MINIMUM FINDING
-        ####################### Change to "nothing" == "nothin"
-                                # and print options in PES
-        return energies,R_array
+                                
+        return energies,R_array,minE,minR
         
 
     def molecular_integrals(self):
