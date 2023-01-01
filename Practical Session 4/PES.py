@@ -16,11 +16,11 @@ import numpy as np
 to = time()
 
 # INPUT PARAMETERS
-N = 2
-RHHe = 1.4632
-RHH = 1.4
-ZH,ZHe = 1,2
-zH,zHe = 1.24,2.0926
+N = 2                   # Number of electrons
+RHHe = 1.4632           # H-He distance in HeH+
+RHH = 1.4               # H-H distance in H2
+ZH,ZHe = 1,2            # H and He nuclear charges
+zH,zHe = 1.24,2.0926    # H and He effective charges
 R_array = np.linspace(0.5,8,1000)
 
 # GENERATING MOLECULES 
