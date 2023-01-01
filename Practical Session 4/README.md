@@ -8,5 +8,5 @@ In this folder are found the problems for Practical Session 4, their corresponde
 
 `SinglePoint.py` : Calculates SCF for a fixed configuration.
 
-
+The `.log` files are examples of the results the program outputs.
 
