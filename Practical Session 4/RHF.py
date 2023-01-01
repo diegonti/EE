@@ -1,7 +1,7 @@
 """
 Module for the RHF program.
-Contains the Molecule class, which allows to create a molecuke with its geometry and information (charges, electrons,..)
-And the RHF class, which reads a Molecule object and performs RHF calculations usinc SCF with the STO-NG basis set.
+Contains the Molecule class, which allows to create a molecule with its geometry and information (charges, electrons,..)
+And the RHF class, which reads a Molecule object and performs RHF calculations using SCF with the STO-NG basis set.
 
 Diego Ontiveros
 """
@@ -194,6 +194,7 @@ class RHF():
             Pt = P_matrix(N,C)               # Denisty Matrix
             Eelec = 0.5*np.sum(Pt*(H+F))     # Electronic Energy E0
 
+
             # Printing and writing current iteration results
             if not not_print:
                 if "all" in print_options or "iterations" in print_options:
@@ -204,6 +205,7 @@ class RHF():
             print_title(f"SCF Iternation: {n_iterations}",head=1,tail=0,before=10,after=0)
             print_current_iteration(G,F,Ft,e,C,Pt,Eelec)
             sys.stdout = original_stdout
+
 
             # Convergence
             if converged(P0,Pt,eps):
@@ -239,6 +241,7 @@ class RHF():
             P0 = Pt.copy()  # Updating Density Matrix
         sys.stdout = original_stdout
 
+
     def PES(self,R_array:np.ndarray=None,file_name="PES.log"):
         """
         Returns the PES of the fundamental state calculated at the R_array positions.
@@ -267,6 +270,7 @@ class RHF():
         if self.molecule.molecule_label is None: molecule_label = "1"
         else: molecule_label = self.molecule.molecule_label
 
+
         print_title(f"Starting PES Calculation for {molecule_label}")
         # Calculating PES for the R_array
         energies = np.zeros(len(R_array))
@@ -277,6 +281,7 @@ class RHF():
             Vnn,Eelec,E = self.SCF(file_name=file_name, print_options=["nothing"])
             energies[i] = E
         
+
         # Searching minimum.
         minE = np.min(energies)
         minEi = np.argmin(energies)
@@ -556,7 +561,6 @@ def print_bielectronic_tensor(tensor):
                 for l in range(m):
 
                     print(f" {i+1}  {j+1}  {k+1}  {l+1}   {tensor[i,j,k,l]}")
-    pass
 
 def print_transformation_matrix(S12,U,X,S):
     """Prints transformation matrix X information."""
