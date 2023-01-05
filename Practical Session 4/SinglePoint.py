@@ -25,7 +25,7 @@ zH,zHe = 1.24,2.0926    # H and He effective charges
 file_name = "SP.log"    # Output file
 
 # To overwrite file
-try: os.remove("SP.log")
+try: os.remove(file_name)
 except FileNotFoundError: pass
 
 # GENERATING MOLECULES 
